@@ -8,9 +8,39 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from scrape_events import accept_cookies
 
+def convert_coordinates(dms_str):
+    def convert_to_decimal(degrees, minutes, seconds, direction):
+        decimal = degrees + minutes/60 + seconds/3600
+        if direction in ['S', 'W']:
+            decimal *= -1
+        return decimal
+
+    # Dela upp strängen i latitud och longitud delar
+    lat_str, lon_str = dms_str.split(" ")
+    
+    # Extrahera grader, minuter, sekunder och riktning för latitud
+    lat_deg = int(lat_str[:-1].split("°")[0])
+    lat_min = int(lat_str[:-1].split("°")[1].split("'")[0])
+    lat_sec = float(lat_str[:-1].split("°")[1].split("'")[1][:-1])
+    lat_dir = lat_str[-1]
+    
+    # Extrahera grader, minuter, sekunder och riktning för longitud
+    lon_deg = int(lon_str[:-1].split("°")[0])
+    lon_min = int(lon_str[:-1].split("°")[1].split("'")[0])
+    lon_sec = float(lon_str[:-1].split("°")[1].split("'")[1][:-1])
+    lon_dir = lon_str[-1]
+    
+    # Konvertera till decimal
+    lat_decimal = convert_to_decimal(lat_deg, lat_min, lat_sec, lat_dir)
+    lon_decimal = convert_to_decimal(lon_deg, lon_min, lon_sec, lon_dir)
+    
+    return lat_decimal, lon_decimal
+
+
 
 def setup_driver():
     chrome_options = Options()
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-notifications")
     chrome_options.add_argument("--start-maximized")
     service = Service(ChromeDriverManager().install())
@@ -55,6 +85,7 @@ def get_coordinates_from_event(url):
 
             if coordinates_element:
                 coordinates = coordinates_element.text
+                coordinates = convert_coordinates()
                 driver.switch_to.default_content()
                 return coordinates
             else:

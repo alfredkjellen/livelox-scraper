@@ -21,10 +21,9 @@ def accept_cookies(driver):
     except Exception as e:
         print(f"Error occured while accepting cookies: {e}")
 
-
 def setup_driver():
     chrome_options = Options()
-    #chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-notifications")
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
