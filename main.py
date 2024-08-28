@@ -6,6 +6,11 @@ import firebase_admin
 from firebase_admin import credentials, storage, firestore
 import os
 import json
+import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
+import threading
+
+
 
 json_link_Windows = 'C:/firebasekeys/o-guessr-315d061ed6c2.json'
 json_link_mac = 'o-guessr-firebase-adminsdk-lx5bw-054e7ff677.json'
@@ -53,35 +58,34 @@ def store_map(image_path):
         upload_image_to_firebase(image_path, firebase_image_path)
 
 
-def run(url):
-    ids, links = get_event_data(url)
-    print(f"{len(ids)} events found")
+# def run(url):
+#     ids, links = get_event_data(url)
+#     print(f"{len(ids)} events found")
     
-    map_count = 0
-
-    new_map_data = []
+#     map_count = 0
+#     new_map_data = []
     
-    if len(ids) > 0:
-        for id, link in zip(ids, links):
-            image_path = download_map_image(id)
-            if image_path:
-                coordinates = get_coordinates_from_event(link)
-                if coordinates:
-                    store_map(image_path)
-                    country = get_country(coordinates)
-                    map_object = [id, coordinates, country] # {"id": id, "coordinates":coordinates, "country":country}
-                    new_map_data.append(map_object)
-                    map_count += 1
+#     if len(ids) > 0:
+#         for id, link in zip(ids, links):
+#             image_path = download_map_image(id)
+#             if image_path:
+#                 coordinates = get_coordinates_from_event(link)
+#                 if coordinates:
+#                     store_map(image_path)
+#                     country = get_country(coordinates)
+#                     map_object = [id, coordinates, country] # {"id": id, "coordinates":coordinates, "country":country}
+#                     new_map_data.append(map_object)
+#                     map_count += 1
 
 
-    path_to_svelte_project = '/Users/alfred.kjellen/Desktop/VisualStudioCodeProjekt/o-guessr-game/src/lib/ids.json'
-    all_map_data = load_list(path_to_svelte_project)
-    all_map_data.extend(new_map_data)
-    save_list(path_to_svelte_project, all_map_data)
+#     path_to_svelte_project = '/Users/alfred.kjellen/Desktop/VisualStudioCodeProjekt/o-guessr-game/src/lib/ids.json'
+#     all_map_data = load_list(path_to_svelte_project)
+#     all_map_data.extend(new_map_data)
+#     save_list(path_to_svelte_project, all_map_data)
 
-    print(f"{map_count} maps uploaded")
+#     print(f"{map_count} maps uploaded")
 
-    clear_temp_maps()
+#     clear_temp_maps()
 
 
 def load_list(filename):
@@ -98,5 +102,54 @@ def save_list(filename, data):
         json.dump(data, file)
 
 
-url = "https://www.livelox.com/?tab=allEvents&timePeriod=pastWeek&country=USA&sorting=time"
-run(url)
+
+
+
+def process_url(url):
+    ids, links = get_event_data(url)
+    print(f"{len(ids)} events found for {url}")
+    map_count = 0
+    new_map_data = []
+    
+    if len(ids) > 0:
+        for id, link in zip(ids, links):
+            image_path = download_map_image(id)
+            if image_path:
+                coordinates = get_coordinates_from_event(link)
+                if coordinates:
+                    store_map(image_path)
+                    country = get_country(coordinates)
+                    map_object = [id, coordinates, country]
+                    new_map_data.append(map_object)
+                    map_count += 1
+    
+    print(f"{map_count} maps uploaded for {url}")
+    return new_map_data
+
+
+
+def run_threaded(urls):
+    all_map_data = []
+    
+    with ThreadPoolExecutor(max_workers=len(urls)) as executor:
+        future_to_url = {executor.submit(process_url, url): url for url in urls}
+        for future in concurrent.futures.as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                data = future.result()
+                all_map_data.extend(data)
+            except Exception as exc:
+                print(f'{url} generated an exception: {exc}')
+
+    path_to_svelte_project = '/Users/alfred.kjellen/Desktop/VisualStudioCodeProjekt/o-guessr-game/src/lib/ids.json'
+    existing_data = load_list(path_to_svelte_project)
+    existing_data.extend(all_map_data)
+    save_list(path_to_svelte_project, existing_data)
+    
+    clear_temp_maps()
+
+
+if __name__ == '__main__':
+    urls = ["https://www.livelox.com/?tab=allEvents&timePeriod=pastWeek&country=USA&sorting=time"]
+    run_threaded(urls)
+

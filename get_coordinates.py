@@ -5,8 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-
-from scrape_events import accept_cookies
+from scrape_events import accept_cookies, setup_driver
 
 def convert_coordinates(dms_str):
     def convert_to_decimal(degrees, minutes, seconds, direction):
@@ -36,16 +35,6 @@ def convert_coordinates(dms_str):
     
     return lat_decimal, lon_decimal
 
-
-
-def setup_driver():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-notifications")
-    chrome_options.add_argument("--start-maximized")
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    return driver
 
 def get_coordinates_from_event(url):
     driver = setup_driver()
