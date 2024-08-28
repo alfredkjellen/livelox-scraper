@@ -1,1 +1,1 @@
-Project to scrape Livelox and get relevent map data for the O-Guessr Game.
+Project to scrape Livelox and get relevent map data for the Orienteering-Guessr Game.
