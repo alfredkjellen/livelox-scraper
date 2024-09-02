@@ -4,50 +4,42 @@ import os
 import json
 import reverse_geocoder as rg
 import requests
+from requests.exceptions import RequestException
 from scrape_events import get_event_data
 from scrape_coordinates import get_coordinates 
 
-import requests
-from firebase_admin import storage
-from requests.exceptions import RequestException
+cred_path_Windows = 'C:/firebasekeys/o-guessr-315d061ed6c2.json'
+cred_path_mac = 'o-guessr-firebase-adminsdk-lx5bw-054e7ff677.json'
+cred_path = cred_path_mac
 
-json_link_Windows = 'C:/firebasekeys/o-guessr-315d061ed6c2.json'
-json_link_mac = 'o-guessr-firebase-adminsdk-lx5bw-054e7ff677.json'
-json_link = json_link_mac
-cred = credentials.Certificate(json_link)
+cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred, {
     'storageBucket': 'o-guessr.appspot.com'
 })
 db = firestore.client()
 
-def run(url, max_amount=5):
+def run(url, max_amount=float('inf')):
     ids, links = get_event_data(url)
     print(f"{len(ids)} events found")
     map_count = 0
     new_map_data = []
-    
-    if len(ids) > 0:
-        for id, link in zip(ids, links):
-            if map_count < max_amount:
-                try:
-                    if upload_map(id):
-                        coordinates = get_coordinates(link)
-                        if coordinates is not None:
-                            country = get_country(coordinates)
-                            map_object = {"id": id, "coordinates": coordinates, "country": country}
-                            new_map_data.append(map_object)
-                            map_count += 1
-                        else:
-                            print(f"Failed to get coordinates for map {id}")
-                except Exception as e:
-                    print(f"Error processing map {id}: {str(e)}")
-            else:
-                break
+
+    for id, link in zip(ids, links):
+        if map_count < max_amount:
+            if upload_map(id):
+                coordinates = get_coordinates(link)
+                if coordinates:
+                    country = get_country(coordinates)
+                    map_object = {"id": id, "coordinates": coordinates, "country": country}
+                    new_map_data.append(map_object)
+                    map_count += 1
+        else:
+            break
         
-    path_to_svelte_project = '/Users/alfred.kjellen/Desktop/VisualStudioCodeProjekt/o-guessr-game/src/lib/ids.json'
-    all_map_data = load_list(path_to_svelte_project)
+    path_to_map_data = '/Users/alfred.kjellen/Desktop/VisualStudioCodeProjekt/o-guessr-game/src/lib/ids.json'
+    all_map_data = load_list(path_to_map_data)
     all_map_data.extend(new_map_data)
-    save_list(path_to_svelte_project, all_map_data)
+    save_list(path_to_map_data, all_map_data)
     print(f"{map_count} maps saved")
 
 
@@ -98,4 +90,3 @@ def save_list(filename, data):
         
 if __name__ == "__main__":
     run("https://www.livelox.com/?tab=allEvents&timePeriod=pastWeek&country=SWE&sorting=time")
-    
