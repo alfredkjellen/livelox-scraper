@@ -1,5 +1,5 @@
 *.json
-.venv
+.venv/
 __pycache__/
 *.png
 temp_maps/
