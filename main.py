@@ -7,9 +7,8 @@ import requests
 from requests.exceptions import RequestException
 from scrape_events import get_event_data
 from scrape_coordinates import get_coordinates 
+from credentials import cred_path_mac, cred_path_Windows
 
-cred_path_Windows = 'C:/firebasekeys/o-guessr-315d061ed6c2.json'
-cred_path_mac = 'o-guessr-firebase-adminsdk-lx5bw-054e7ff677.json'
 cred_path = cred_path_mac
 
 cred = credentials.Certificate(cred_path)
@@ -18,14 +17,14 @@ firebase_admin.initialize_app(cred, {
 })
 db = firestore.client()
 
-def run(url, max_amount=float('inf')):
-    ids, links = get_event_data(url)
+def run(url, max_map_amount=float('inf'), max_event_amount=float('inf')):
+    ids, links = get_event_data(url, max_event_amount)
     print(f"{len(ids)} events found")
     map_count = 0
     new_map_data = []
 
     for id, link in zip(ids, links):
-        if map_count < max_amount:
+        if map_count < max_map_amount:
             if upload_map(id):
                 coordinates = get_coordinates(link)
                 if coordinates:
@@ -41,7 +40,6 @@ def run(url, max_amount=float('inf')):
     all_map_data.extend(new_map_data)
     save_list(path_to_map_data, all_map_data)
     print(f"{map_count} maps saved")
-
 
 def upload_map(id):
     session = requests.Session()

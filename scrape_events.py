@@ -32,7 +32,7 @@ def setup_driver():
     return driver
 
 
-def get_event_data(url, max_amount=float('inf')):
+def get_event_data(url, max_amount):
     driver = setup_driver()
     driver.get(url)
     
@@ -43,13 +43,13 @@ def get_event_data(url, max_amount=float('inf')):
     
     ids = []
     links = []
-    event_amount = 0   
+    event_count = 0
     
     while True:
         try:
             events = driver.find_elements(By.CLASS_NAME, "row.event")
             for event in events:
-                if event_amount < max_amount:
+                if event_count < max_amount:
                     try:
                         driver.execute_script("arguments[0].scrollIntoView(true);", event)
                         time.sleep(0.1)
@@ -70,18 +70,18 @@ def get_event_data(url, max_amount=float('inf')):
                             ids.append(id)
                             links.append(link)
 
-                            event_amount += 1
+                            event_count += 1
                             
                             
                         neutral_area = event.find_element(By.CSS_SELECTOR, "div.col-sm-3.time-interval-container")
                         ActionChains(driver).move_to_element(neutral_area).click().perform()
                     except Exception as e:
-                        print(f"Kunde inte hantera event: {e}")
+                        print(f"Could not handle event {e}")
                 else:
                     break
             break
         except Exception as e:
-            print(f"Stale element reference, försök igen: {e}")
+            print(f"Stale element reference, try again {e}")
             time.sleep(1)
     
     driver.quit()
